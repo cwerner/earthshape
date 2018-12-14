@@ -1,11 +1,10 @@
+import click
 from collections import OrderedDict
 import numpy as np
 import pandas as pd
 import xarray as xr
-import string
 import sys
 import math
-import copy
 import glob
 import os
 
@@ -13,24 +12,11 @@ import matplotlib
 matplotlib.use('Agg')
 
 import matplotlib.pyplot as plt
-
-
-import matplotlib.gridspec as gridspec
 import matplotlib.patches as mpatches
 import matplotlib.lines as mlines
-
-import cartopy.crs as ccrs
-import cartopy.feature as cfeature
-from cartopy.mpl.gridliner import LONGITUDE_FORMATTER, LATITUDE_FORMATTER
-import matplotlib.ticker as mticker
-
-import xarray as xr
-
 import matplotlib as mpl
-
 import matplotlib.cm as cm
 from matplotlib.collections import PatchCollection
-from matplotlib.legend_handler import HandlerBase
 
 from tools import AnyObject, AnyObjectHandler
 
@@ -108,8 +94,7 @@ Dvar = {'temp': "$\mathregular{T_{avg}\ [\degree C]}$",
         'erosion': '$\mathregular{Erosion\ [mm\ y^{-1}]}$'}
 
 def clean(s):
-    _s = s.replace('.','').replace(' ', '_')
-    return _s
+    return s.replace('.','').replace(' ', '_')
 
 def smoothTriangle(data, degree, dropVals=False):
     """performs moving triangle smoothing with a variable degree."""
@@ -146,11 +131,18 @@ def custom_stackplot(axis, x, ys, colors, hatches, **kwargs):
 				**kwargs)  ## < removes facecolor
         cd1 = cd2
 
+def main(data, data_lpj, outname, components, lfid):
+    #def main(fdataname, fbiomename, flandlab, p, maxlfid=False):
 
-def main(fdataname, fbiomename, flandlab, p, maxlfid=False):
-
-    ADD_BIOME = True
+    # refactor this later
+    DO_MAXLFID = False
+    ADD_BIOME  = False
     INCLUDE_GRASS = True
+    DROP_LABELS = False
+
+    if lfid == -1: DO_MAXLFID = True
+    if componennts == 'ALL': ADD_BIOME = True
+
     DO_MAXLFID = maxlfid
     DROP_LABELS = False
 
@@ -159,8 +151,8 @@ def main(fdataname, fbiomename, flandlab, p, maxlfid=False):
 
     if maxlfid:
         D_mapEle={0: np.array([6]), 1: np.array([2,3]), 2: np.array([3]), 3: np.array([2])}
-        print 'Using dominant landform only'
-        print 'Searching in elevation bracket'
+        print('Using dominant landform only')
+        print('Searching in elevation bracket')
         # select largest landform in this cell
         # get dominant land_id
         bracket = D_mapEle[p]*100
@@ -170,7 +162,7 @@ def main(fdataname, fbiomename, flandlab, p, maxlfid=False):
         the_lf_fr = float(np.nanmax(ds2['fraction'].where( lf_sel ).values))
         ds2  = ds2.sel(lf_id=the_lf_id, drop=True)
 
-        print p, the_lf_id, the_lf_fr
+        print(p, the_lf_id, the_lf_fr)
 
     if ADD_BIOME:
         from lpjguesstools.lgt_biomize.biomes_earthshape import biomes, biome_color
@@ -233,7 +225,6 @@ def main(fdataname, fbiomename, flandlab, p, maxlfid=False):
         dsb = dsb.swap_dims(dict(time='time_c'))
         del dsb.coords['time']
 
-    print '---------'
     pfts = ds2.coords['pft'].values
 
     # climate vars ---
@@ -772,22 +763,37 @@ def main(fdataname, fbiomename, flandlab, p, maxlfid=False):
             facecolor=fig.get_facecolor(), edgecolor='none')
 
 
-if __name__ == '__main__':
-    #for p in range(3):
-    #main(sys.argv[1], int(sys.argv[2]))
+CONTEXT_SETTINGS = dict(help_option_names=['-h', '--help'])
+click.Context.get_usage = click.Context.get_help
 
-    maxlfid=False
+@click.command(context_settings=CONTEXT_SETTINGS)
 
-    print("MAKE SURE TO FIX THE BIOMIZATION IMPORT BEFORE DOING THE PAPER!")
+@click.option('-c', '--components', default='BASIC', 
+                    type=click.Choice(['ALL','BASIC']),
+                    show_default=True, multiple=False,
+                    help='plot composition (panel setup)')
 
-    fdataname = sys.argv[1]
-    fbiomename = sys.argv[2]
-    flandlab = sys.argv[3]
-    site_id = int(sys.argv[4])
-    if len(sys.argv)>4:
-        maxlfid=True
-        #if not 'lfid' in fdataname:
-        #    print 'we need a lfid netCDF file'
-        #    exit()
+@click.option('--maxlfid', default=False, 
+                    type=bool, show_default=True, multiple=False,
+                    help='if selected determine dominant lfid and use it')
 
-    main(fdataname, fbiomename, flandlab, site_id, maxlfid)
+@click.option('--lfid', default=None, 
+                    type=int, show_default=True, multiple=False,
+                    help='if selected plot results for a single landform')
+
+@click.argument('data', type=click.Path(exists=True), required=True)
+@click.argument('data_lpj', type=click.Path(exists=True), required=False)
+@click.argument('outname', required=True)
+def cli(data, data_lpj, outname, components, maxlfid, lfid):
+    if maxlfid:
+        lfid = max_lfid(data)
+    elif lfid:
+        pass
+    else:
+        lfid = -1
+
+    main(data, data_lpj, outname, components, lfid)
+
+
+if __name__ == "__main__":
+    cli()

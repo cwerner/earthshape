@@ -1,4 +1,6 @@
 import matplotlib.patches as mpatches
+from matplotlib.legend_handler import HandlerBase
+
 
 class AnyObject(object):
     """Store color and patch attributes for legend
