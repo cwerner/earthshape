@@ -32,10 +32,7 @@ import matplotlib.cm as cm
 from matplotlib.collections import PatchCollection
 from matplotlib.legend_handler import HandlerBase
 
-
-def enum(*sequential, **named):
-    enums = dict(zip(sequential, range(len(sequential))), **named)
-    return type('Enum', (), enums)
+from tools import AnyObject, AnyObjectHandler
 
 def majority(x, axis=0):
     return np.argmax(np.bincount( x.astype(np.int)))
@@ -44,13 +41,6 @@ def majority(x, axis=0):
 matplotlib.rcParams['hatch.linewidth'] = 0.5  # previous pdf hatch linewidth
 matplotlib.rcParams['axes.labelsize'] = 10
 matplotlib.rcParams['font.size']= 10
-
-# modify legend patch size
-#matplotlib.rcParams['legend.handlelength'] = 2
-#matplotlib.rcParams['legend.handleheight'] = 1 
-#matplotlib.rcParams['legend.numpoints'] = 1
-# this should be imported
-
 
 # NEW CHILE BIOMIZATION
 
@@ -94,41 +84,6 @@ def shift_legend(leg, ax, x_offset, y_offset):
     bb.y1 -= y_offset
     leg.set_bbox_to_anchor(bb, transform = ax.transAxes)
 
-class AnyObject(object):
-    """Store color and patch attributes for legend
-    """
-    def __init__(self, color, left, right=None):
-        # valid values:
-        self.color = color
-        self.left  = left
-        self.right = right
-
-class AnyObjectHandler(HandlerBase):
-    """Custom legend handler for PFT plot
-    """
-    def create_artists(self, legend, ohandle,
-                    x0, y0, width, height, fontsize, trans):
-    
-        r = []
-        # if only one patch, center it
-        if not ohandle.right:
-            #lpos = (x0 + width*0.275, y0)
-            the_width = width
-            rpos = (x0, y0)
-        else:
-            the_width = width * 0.475
-            rpos = (x0+0.525*width,y0)
-
-        lpos = (x0, y0)
-            
-        r.append( mpatches.Rectangle(lpos, the_width, height, ec='black',
-                   linestyle='-', fc=ohandle.color, lw=0.1, hatch=ohandle.left) )
-        
-        if ohandle.right:
-            r.append( mpatches.Rectangle(rpos, the_width, height, ec='black',
-                   linestyle='-', fc=ohandle.color, lw=0.1, hatch=ohandle.right ) )
-
-        return r
 
 
 # PLOT TYPE
