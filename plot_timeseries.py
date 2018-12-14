@@ -54,7 +54,6 @@ matplotlib.rcParams['font.size']= 10
 
 # NEW CHILE BIOMIZATION
 
-
 D_cols2  = OrderedDict([('TeBE', "#006400"),
                 ('TeBEX', "#8f8f00"),
                 ('TeBS',  "#90ee90"),
@@ -62,9 +61,8 @@ D_cols2  = OrderedDict([('TeBE', "#006400"),
                 ('TeNE', "#6b8e23"),
                 ('BSh', "#ffaeb9"),
                 ('BBS',  "#314d5a"), 
-		('BBE', "#45a081"),
+	        	('BBE', "#45a081"),
                 ('Grass', "#d2b48c")])
-
 
 INCLUDE_GRASS = True
 
@@ -96,8 +94,6 @@ def shift_legend(leg, ax, x_offset, y_offset):
     bb.y1 -= y_offset
     leg.set_bbox_to_anchor(bb, transform = ax.transAxes)
 
-
-
 class AnyObject(object):
     """Store color and patch attributes for legend
     """
@@ -114,7 +110,6 @@ class AnyObjectHandler(HandlerBase):
                     x0, y0, width, height, fontsize, trans):
     
         r = []
-
         # if only one patch, center it
         if not ohandle.right:
             #lpos = (x0 + width*0.275, y0)
@@ -136,20 +131,10 @@ class AnyObjectHandler(HandlerBase):
         return r
 
 
-
 # PLOT TYPE
 bg_color = 'white'
-
-if len(sys.argv) > 1:
-    bg_color = sys.argv[1]
-
-if bg_color == 'black':
-    fg_color = 'white'
-else:
-    fg_color = 'black'
-    
-
-
+if len(sys.argv) > 1: bg_color = sys.argv[1]
+fg_color = 'white' if bg_color == 'black' else 'black'
 
 # read sites location
 #sites      = pd.read_csv('ES_SiteLocations_checked.csv', sep=';')
@@ -574,7 +559,6 @@ def main(fdataname, fbiomename, flandlab, p, maxlfid=False):
         rcolor = 'darkblue'
 
     # calculate fpc based on beer-law
-    import math
     df['fpc_th'] = df['Total'].apply(lambda x: (1-math.exp(-0.5*x))*100)
 
     # scale partitioned fpc with fpc_th
@@ -632,8 +616,6 @@ def main(fdataname, fbiomename, flandlab, p, maxlfid=False):
         # add textmarker for cpation
         ax[ID].text(500, 101.5, '*', fontsize=13, zorder=100)
 
-
-
     # set some sensible runoff ylims
     if df.runoffavg.max() < 10:
         ax_right[ID].set_ylim(ymin=0, ymax=11.99)
@@ -643,7 +625,6 @@ def main(fdataname, fbiomename, flandlab, p, maxlfid=False):
         ax_right[ID].set_ylim(ymin=0, ymax=599)
     else:
         ax_right[ID].set_ylim(ymin=400, ymax=1059)
-
 
     # panel now erosion rate
     ID += 1
