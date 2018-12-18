@@ -5,7 +5,7 @@ import pandas as pd
 import xarray as xr
 import sys
 import math
-import glob
+from pathlib import Path
 import os
 
 import matplotlib
@@ -74,7 +74,6 @@ def shift_legend(leg, ax, x_offset, y_offset):
 
 # PLOT TYPE
 bg_color = 'white'
-if len(sys.argv) > 1: bg_color = sys.argv[1]
 fg_color = 'white' if bg_color == 'black' else 'black'
 
 # read sites location
@@ -131,6 +130,25 @@ def custom_stackplot(axis, x, ys, colors, hatches, **kwargs):
 				**kwargs)  ## < removes facecolor
         cd1 = cd2
 
+def read_co2(fname):
+    df = pd.read_table(fname, delim_whitespace=True, header=None)
+    df.columns = ['time', 'CO2']
+    df['time'] = df.time - 1950 # convert to BP values
+    return df
+
+def extract_data(ds, var, lfid=None, lfidvar='landform__ID'):
+    """return mean value for ids"""
+    ds = xr.open_dataset(ds, decode_times=False)
+    ids = [lfid] if lfid else np.unique(ds[lfidvar].values) 
+    return {i: ds[var].where(ds[lfidvar]==i).mean().values for i in ids}
+
+def extract_area(ds, lfid=None, lfidvar='landform__ID'):
+    """return area value for ids"""
+    ds = xr.open_dataset(ds, decode_times=False)
+    ids = [lfid] if lfid else np.unique(ds[lfidvar].values) 
+    tot = ds[lfidvar].count().values 
+    return {i: ds[lfidvar].where(ds[lfidvar]==i).count().values / tot for i in ids}
+
 def main(data, data_lpj, outname, components, lfid):
     #def main(fdataname, fbiomename, flandlab, p, maxlfid=False):
 
@@ -141,10 +159,17 @@ def main(data, data_lpj, outname, components, lfid):
     DROP_LABELS = False
 
     if lfid == -1: DO_MAXLFID = True
-    if componennts == 'ALL': ADD_BIOME = True
+    if components == 'ALL': ADD_BIOME = True
 
-    DO_MAXLFID = maxlfid
-    DROP_LABELS = False
+
+    ncs = sorted(Path(data).glob('*.nc'))
+    data = [extract_data(nc, 'soil__depth') for nc in ncs]
+    area = [extract_area(nc) for nc in ncs]
+
+    print(pd.DataFrame(data))
+    print(pd.DataFrame(area))
+
+    exit()
 
     ds2  = xr.open_dataset(fdataname, decode_times=False) #.sel(time=slice(-20010,1989))
     ds2['time'] = ds2['time'] - 1950 # convert to BP values
@@ -198,11 +223,8 @@ def main(data, data_lpj, outname, components, lfid):
 
     # .sel(time=slice(-20010,1989))['biome'].to_dataset(name='biome')
 
-    df_co2 = pd.read_table('co2_TraCE_egu2018_35ka_const180ppm.txt', delim_whitespace=True, header=None)
-    df_co2.columns = ['time', 'CO2']
-
-    df_co2['time'] = df_co2['time'] - 1950 # convert to BP values
-
+    df_co2 = read_co2('co2_TraCE_egu2018_35ka_const180ppm.txt')
+    
     doit = False
     if doit:
 
@@ -781,10 +803,12 @@ click.Context.get_usage = click.Context.get_help
                     type=int, show_default=True, multiple=False,
                     help='if selected plot results for a single landform')
 
+@click.option('-o', '--out', default='plot.png', 
+                    help='plot composition (panel setup)')
+
 @click.argument('data', type=click.Path(exists=True), required=True)
 @click.argument('data_lpj', type=click.Path(exists=True), required=False)
-@click.argument('outname', required=True)
-def cli(data, data_lpj, outname, components, maxlfid, lfid):
+def cli(data, data_lpj, out, components, maxlfid, lfid):
     if maxlfid:
         lfid = max_lfid(data)
     elif lfid:
@@ -792,7 +816,7 @@ def cli(data, data_lpj, outname, components, maxlfid, lfid):
     else:
         lfid = -1
 
-    main(data, data_lpj, outname, components, lfid)
+    main(data, data_lpj, out, components, lfid)
 
 
 if __name__ == "__main__":
